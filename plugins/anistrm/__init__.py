@@ -56,13 +56,13 @@ class ANiStrm(_PluginBase):
     # 插件描述
     plugin_desc = "自动获取当季所有番剧，免去下载，轻松拥有一个番剧媒体库"
     # 插件图标
-    plugin_icon = "https://raw.githubusercontent.com/honue/MoviePilot-Plugins/main/icons/anistrm.png"
+    plugin_icon = "https://raw.githubusercontent.com/aa889788/MoviePilot-Plugins/main/icons/anistrm.png"
     # 插件版本
-    plugin_version = "2.4.2"
+    plugin_version = "2.4.3"
     # 插件作者
-    plugin_author = "honue"
+    plugin_author = "aa889788"
     # 作者主页
-    author_url = "https://github.com/honue"
+    author_url = "https://github.com/aa889788"
     # 插件配置项ID前缀
     plugin_config_prefix = "anistrm_"
     # 加载顺序
@@ -77,6 +77,7 @@ class ANiStrm(_PluginBase):
     _onlyonce = False
     _fulladd = False
     _storageplace = None
+    _hostname = None
 
     # 定时器
     _scheduler: Optional[BackgroundScheduler] = None
@@ -91,6 +92,9 @@ class ANiStrm(_PluginBase):
             self._onlyonce = config.get("onlyonce")
             self._fulladd = config.get("fulladd")
             self._storageplace = config.get("storageplace")
+            self._hostname = config.get("hostname")
+        if not self._hostname:
+            self._hostname = 'openani.an-i.workers.dev'
             # 加载模块
         if self._enabled or self._onlyonce:
             # 定时服务
@@ -131,7 +135,7 @@ class ANiStrm(_PluginBase):
 
     @retry(Exception, tries=3, logger=logger, ret=[])
     def get_current_season_list(self) -> List:
-        url = f'https://openani.an-i.workers.dev/{self.__get_ani_season()}/'
+        url = f'https://{self._hostname}/{self.__get_ani_season()}/'
 
         rep = RequestUtils(ua=settings.USER_AGENT if settings.USER_AGENT else None,
                            proxies=settings.PROXY if settings.PROXY else None).post(url=url)
@@ -157,13 +161,13 @@ class ANiStrm(_PluginBase):
             # 链接
             link = DomUtils.tag_value(item, "link", default="")
             rss_info['title'] = title
-            rss_info['link'] = link.replace("resources.ani.rip", "openani.an-i.workers.dev")
+            rss_info['link'] = link.replace("resources.ani.rip", self._hostname)
             ret_array.append(rss_info)
         return ret_array
 
     def __touch_strm_file(self, file_name, file_url: str = None) -> bool:
         if not file_url:
-            src_url = f'https://openani.an-i.workers.dev/{self._date}/{file_name}?d=true'
+            src_url = f'https://{self._hostname}/{self._date}/{file_name}?d=true'
         else:
             src_url = file_url
         file_path = f'{self._storageplace}/{file_name}.strm'
@@ -301,6 +305,23 @@ class ANiStrm(_PluginBase):
                                             'model': 'storageplace',
                                             'label': 'Strm存储地址',
                                             'placeholder': '/downloads/strm'
+                                        }
+                                    }
+                                ]
+                            },
+                            {
+                                'component': 'VCol',
+                                'props': {
+                                    'cols': 12,
+                                    'md': 4
+                                },
+                                'content': [
+                                    {
+                                        'component': 'VTextField',
+                                        'props': {
+                                            'model': 'hostname',
+                                            'label': '自定义域名',
+                                            'placeholder': 'openani.an-i.workers.dev'
                                         }
                                     }
                                 ]
